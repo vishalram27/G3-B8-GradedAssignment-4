@@ -1,7 +1,8 @@
 package com.greatlearning.employee.ems.model;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+
+import com.greatlearning.employee.ems.service.UserDetailsServiceImpl;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -10,14 +11,22 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Setter
+@Getter
 @Entity
 @Table(name = "user")
-@Data
-public class User {
+public class User extends UserDetailsServiceImpl{
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,7 +38,10 @@ public class User {
 	@Column(name = "password")
 	private String password;
 
-	@ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-	private Set<Role> roles = new HashSet<>();
+	private boolean enabled = true;
+
+	@ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
+	@JoinTable(name = "users_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+	private List<Role> roles;
 
 }
