@@ -4,52 +4,43 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 
-import com.greatlearning.employee.ems.service.UserDetailsServiceImpl;
+import com.greatlearning.employee.ems.service.UsersDetailsService;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfig {
 
 	@Bean
-	public PasswordEncoder BcrBCryptPasswordEncoder() {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+		return http.csrf().disable().authorizeRequests().requestMatchers("/api/employees/list")
+				.hasAnyAuthority("ADMIN", "USER").and().authorizeRequests().requestMatchers("/api/employees/**")
+				.hasAuthority("ADMIN").anyRequest().authenticated().and().formLogin().and().httpBasic().and()
+				.exceptionHandling().and().build();
+	}
+
+	@Bean
+	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
 
 	@Bean
-	public UserDetailsService UserDetailsService() {
-		return new UserDetailsServiceImpl();
+	public AuthenticationProvider authenticationProvider() {
+		DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
+		authenticationProvider.setUserDetailsService(userDetailsService());
+		authenticationProvider.setPasswordEncoder(passwordEncoder());
+		return authenticationProvider;
 	}
 
 	@Bean
-	public AuthenticationProvider getAuthenticationProvider() {
-		DaoAuthenticationProvider auth = new DaoAuthenticationProvider();
-		auth.setUserDetailsService(UserDetailsService());
-		auth.setPasswordEncoder(BcrBCryptPasswordEncoder());
-		return auth;
-	}
-
-	public void configure(AuthenticationManagerBuilder builder) throws Exception {
-		builder.authenticationProvider(getAuthenticationProvider());
-	}
-
-	@SuppressWarnings({ "deprecation", "removal" })
-	public void configure(HttpSecurity http) throws Exception {
-		http.authorizeRequests().requestMatchers("/api/employees/list", "/api/employees/view/{id}")
-		.hasAnyAuthority("ADMIN", "USER")
-		.requestMatchers("/api/employees/addRole", "/api/employees/addUser", "/api/employees/update/{id}",
-				"/api/employees/delete/{id}", "/api/employees/search", "/api/employees/sort")
-		.hasAuthority("admin").anyRequest().authenticated();
-		http.csrf().disable();
-		http.cors().disable();
+	public UserDetailsService userDetailsService() {
+		return new UsersDetailsService();
 	}
 }
